@@ -1,12 +1,12 @@
-package fr.esgi.devtvdb.tools;
+package fr.esgi.devtvdb.interfaces;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import fr.esgi.devtvdb.entities.LoginData;
 import fr.esgi.devtvdb.entities.Series;
 import fr.esgi.devtvdb.entities.SeriesUpdate;
 import fr.esgi.devtvdb.entities.Token;
-import fr.esgi.devtvdb.entities.Wrapper;
 import retrofit2.Call;
 import retrofit2.http.Body;
 import retrofit2.http.GET;
@@ -15,7 +15,7 @@ import retrofit2.http.POST;
 import retrofit2.http.Path;
 import retrofit2.http.Query;
 
-public interface ITheTVDB {
+public interface ISeriesService {
 
     public static final String BASE_URL = "https://api.thetvdb.com/";
     public static final String HEADER_ACCEPT = "Accept";
@@ -46,17 +46,16 @@ public interface ITheTVDB {
     Call<Token> refreshToken();
 
     @GET(PATH_SERIES_BY_ID)
-    Call<Wrapper<Series>> getSeriesById(
+    Call<Series> getSeriesById(
             @Path("id") Long id,
-            @Header(ITheTVDB.HEADER_AUTHORIZATION) String token,
-            @Header(ITheTVDB.HEADER_ACCEPT_LANGUAGE) String language
+            @Header(ISeriesService.HEADER_AUTHORIZATION) String token,
+            @Header(ISeriesService.HEADER_ACCEPT_LANGUAGE) String language
     );
 
     @GET(PATH_UPDATED_SERIES)
-    Call<Wrapper<List<SeriesUpdate>>> getUpdatedSeries(
+    Call<ArrayList<SeriesUpdate>> getUpdatedSeries(
             @Query("fromTime") Long fromTime,
-            @Header(ITheTVDB.HEADER_AUTHORIZATION) String token,
-            @Header(ITheTVDB.HEADER_ACCEPT_LANGUAGE) String language
+            @Header(ISeriesService.HEADER_AUTHORIZATION) String token
             );
 
 }

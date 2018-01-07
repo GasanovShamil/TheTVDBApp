@@ -1,4 +1,4 @@
-package fr.esgi.devtvdb.tools;
+package fr.esgi.devtvdb.Helpers;
 
 import android.content.Context;
 import android.content.SharedPreferences;
@@ -28,6 +28,19 @@ public class SharedPreferencesHelper {
         String token = sharedPreferences.getString("token", null);
         User user = (username != null && password != null)?new User(username,password,token):null;
         return user;
+    }
+
+    public static void setLanguage(Context context, String lang) {
+        SharedPreferences sharedPreferences = context.getSharedPreferences(_USER_PREFERENCES_FILE, Context.MODE_PRIVATE);
+        SharedPreferences.Editor editor = sharedPreferences.edit();
+        editor.putString("language", lang);
+        editor.commit();
+    }
+
+    public static String getDefaultLanguage(Context context) {
+        SharedPreferences sharedPreferences = context.getSharedPreferences(_USER_PREFERENCES_FILE, Context.MODE_PRIVATE);
+        String language = sharedPreferences.getString("language", null);
+        return language;
     }
 
 }

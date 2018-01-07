@@ -6,9 +6,9 @@
     android:name="fr.esgi.devtvdb.fragments.SeriesListFragment"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:layout_marginLeft="10dp"
+    android:layout_marginLeft="0dp"
     android:layout_gravity="center"
-    android:layout_marginRight="10dp"
+    android:layout_marginRight="0dp"
     app:layoutManager="LinearLayoutManager"
     tools:context="fr.esgi.devtvdb.fragments.SeriesListFragment"
-    tools:listitem="@layout/fragment_serieslist" />
+    tools:listitem="@layout/cardview_series" />

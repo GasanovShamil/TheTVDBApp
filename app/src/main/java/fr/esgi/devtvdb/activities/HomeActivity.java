@@ -1,4 +1,4 @@
-package fr.esgi.devtvdb;
+package fr.esgi.devtvdb.activities;
 
 import android.app.Fragment;
 import android.app.FragmentManager;
@@ -7,10 +7,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.support.design.widget.FloatingActionButton;
-import android.support.design.widget.Snackbar;
 import android.util.Log;
-import android.view.View;
 import android.support.design.widget.NavigationView;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
@@ -19,31 +16,29 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.widget.TextView;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import fr.esgi.devtvdb.Helpers.SystemHelper;
+import fr.esgi.devtvdb.R;
+import fr.esgi.devtvdb.Services.SeriesService;
 import fr.esgi.devtvdb.entities.Series;
 import fr.esgi.devtvdb.entities.SeriesUpdate;
 import fr.esgi.devtvdb.entities.User;
-import fr.esgi.devtvdb.entities.Wrapper;
 import fr.esgi.devtvdb.fragments.SeriesListFragment;
-import fr.esgi.devtvdb.tools.ApiServices;
-import fr.esgi.devtvdb.tools.DateHelper;
-import fr.esgi.devtvdb.tools.GodMod;
-import fr.esgi.devtvdb.tools.ITheTVDB;
-import fr.esgi.devtvdb.tools.SharedPreferencesHelper;
+import fr.esgi.devtvdb.Helpers.SharedPreferencesHelper;
+import io.realm.Realm;
 
 public class HomeActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener, SeriesListFragment.OnListFragmentInteractionListener {
     static final private int USER_LOGIN = 0;
-    private ITheTVDB _tvdb;
+
     private User _user=null;
     private UpdatedSeriesTask _updateSeriesTask;
     private Boolean userLogged = false;
     private ArrayList<Series> lastUpdatedSeries = new ArrayList<>();
+    private ArrayList<SeriesUpdate> seriesUpdate  = new ArrayList<>();;
 
 
     @Override
@@ -53,14 +48,14 @@ public class HomeActivity extends AppCompatActivity
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
-        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
-        fab.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show();
-            }
-        });
+//        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
+//        fab.setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View view) {
+//                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
+//                        .setAction("Action", null).show();
+//            }
+//        });
 
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
@@ -71,14 +66,17 @@ public class HomeActivity extends AppCompatActivity
         NavigationView navigationView =  (NavigationView) findViewById(R.id.nav_view);
         navigationView.setNavigationItemSelectedListener(this);
 
-        _tvdb = ApiServices.getTvdbInstance();
+
         _user = SharedPreferencesHelper.getUser(this);
         _updateSeriesTask = new UpdatedSeriesTask(this);
 
-        if(savedInstanceState == null) {
-            startLogin();
+        if(savedInstanceState == null ) {
+            if(SystemHelper.isOnline(this)) {
+                startLogin();
+            }else{
+                _updateSeriesTask.execute((Void) null);
+            }
         }
-
 
     }
 
@@ -99,7 +97,7 @@ public class HomeActivity extends AppCompatActivity
         super.onRestoreInstanceState(savedInstanceState);
         _user = savedInstanceState.getParcelable("user");
         lastUpdatedSeries = savedInstanceState.getParcelableArrayList("lastUpdatedSeries");
-        showLastUpdatedSeries(lastUpdatedSeries);
+        showSeriesListFragment(seriesUpdate);
     }
 
     private void startLogin() {
@@ -181,16 +179,16 @@ public class HomeActivity extends AppCompatActivity
 
     }
 
-    private void showLastUpdatedSeries(ArrayList<Series> s){
-        int columnNumber = GodMod.getScreenOrientation(this);
+    private void showSeriesListFragment(ArrayList<SeriesUpdate> s){
+        int columnNumber = 1; //SystemHelper.getScreenOrientation(this);
         FragmentManager fragmentManager = getFragmentManager();
         FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
-        Fragment seriesListFragment = SeriesListFragment.newInstance(columnNumber, s);
+//        Fragment seriesListFragment = SeriesListFragment.newInstance(columnNumber, s);
+        Fragment seriesListFragment = new SeriesListFragment(columnNumber, s);
         fragmentTransaction.replace(R.id.content_home,seriesListFragment).commitAllowingStateLoss();
     };
 
     public class UpdatedSeriesTask extends AsyncTask<Void, Void, Boolean> {
-        List<SeriesUpdate> seriesUpdate;
 
         private Context context;
 
@@ -200,24 +198,44 @@ public class HomeActivity extends AppCompatActivity
 
         @Override
         protected Boolean doInBackground(Void... params) {
-            seriesUpdate = getLastUpdatedSeries();
-            int size = seriesUpdate.size();
-            Log.e("SIZE", ""+size);
 
-            for (int i=20; i>=2;i--){
-                SeriesUpdate s = (seriesUpdate.get(size - i));
-                lastUpdatedSeries.add(getSeriesById(s.id));
-            }
-
-            Log.e("SIZE2", ""+lastUpdatedSeries.size());
-            return (lastUpdatedSeries != null && !lastUpdatedSeries.isEmpty())?true:false;
+//            if (!SystemHelper.isOnline(context)){
+                seriesUpdate = SeriesService.getLastUpdatedSeries();
+                int size = seriesUpdate.size();
+                seriesUpdate = (ArrayList<SeriesUpdate>) seriesUpdate.subList(0,(size<20)?size:20);
+//                for (int i=20; i>=2;i--){
+//                    SeriesUpdate s = (seriesUpdate.get(size - i));
+//                    lastUpdatedSeries.add(SeriesService.getSeriesById(s.id, "en"));
+//                }
+//                final Series favoriteSeries = SeriesService.getSeriesById((long)281662, "en");
+//                Realm realm = Realm.getDefaultInstance();
+//                realm.executeTransaction(new Realm.Transaction() {
+//                    @Override
+//                    public void execute(Realm realm) {
+//                        // This will create a new object in Realm or throw an exception if the
+//                        // object already exists (same primary key)
+//                        // realm.copyToRealm(obj);
+//
+//                        // This will update an existing object with the same primary key
+//                        // or create a new object if an object with no primary key = 42
+//                        realm.copyToRealmOrUpdate(favoriteSeries);
+//                    }
+//                });
+                return (seriesUpdate != null && !seriesUpdate.isEmpty())?true:false;
+//            }else{
+//                Realm realm = Realm.getDefaultInstance();
+//                Series favoriteSeries = realm.where(Series.class).equalTo("id", 281662).findFirst();
+//                Log.d("LOG", favoriteSeries.getSeriesName());
+//                lastUpdatedSeries.add(realm.copyFromRealm(favoriteSeries));
+//                return true;
+//
+//            }
         }
 
         @Override
         protected void onPostExecute(final Boolean success) {
             if (success) {
-                showLastUpdatedSeries(lastUpdatedSeries);
-
+                showSeriesListFragment(seriesUpdate);
             } else {
                 Log.e("LOOOOSER","LOOOOOSER");
             }
@@ -227,30 +245,5 @@ public class HomeActivity extends AppCompatActivity
         protected void onCancelled() {
 
         }
-
-        private List<SeriesUpdate> getLastUpdatedSeries(){
-            Wrapper<List<SeriesUpdate>> updateList = new Wrapper<>();
-            try {
-                updateList = _tvdb.getUpdatedSeries(DateHelper.getEpochTime(-1),"Bearer " + _user.getToken(),"en").execute().body();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            return updateList.data;
-        };
-
-        private Series getSeriesById(Long id){
-            Wrapper<Series> series = new Wrapper<>();
-            _tvdb.getSeriesById(id, "Bearer " + _user.getToken(),"en");
-            try {
-               series =  _tvdb.getSeriesById(id, "Bearer " + _user.getToken(),"en").execute().body();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-
-           return series.data;
-        }
-
-
-
     }
 }
